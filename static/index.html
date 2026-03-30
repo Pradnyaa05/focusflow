@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Login</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #f5f7fb;
+    display: flex;
+    height: 100vh;
+}
+
+.left {
+    flex: 1;
+    background: linear-gradient(135deg, #a4c2f4, #488af4);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.right {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card {
+    width: 320px;
+}
+
+h2 {
+    margin-bottom: 20px;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    background: #488af4;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #5f99f6;
+}
+
+.switch {
+    margin-top: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    color: #488af4;
+}
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+    }
+
+    .left {
+        display: none;
+    }
+
+    .right {
+        width: 100%;
+    }
+
+    .card {
+        width: 90%;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="left">
+    FocusFlow 💙
+</div>
+
+<div class="right">
+    <div class="card">
+
+        <h2 id="title">Register</h2>
+
+        <input id="username" placeholder="Username">
+        <input id="password" type="password" placeholder="Password">
+
+        <button onclick="submit()">Continue</button>
+
+        <div class="switch" onclick="toggle()">Switch to Login</div>
+
+    </div>
+</div>
+
+<script>
+let isLogin = false;
+
+function toggle() {
+    isLogin = !isLogin;
+    document.getElementById("title").innerText = isLogin ? "Login" : "Register";
+    document.querySelector(".switch").innerText = isLogin ? "Switch to Register" : "Switch to Login";
+}
+
+async function submit() {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    const url = isLogin ? "/login" : "/register";
+
+    const res = await fetch("" + url, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+
+    if (isLogin && data.access_token) {
+        localStorage.setItem("token", data.access_token);
+        window.location.href = "dashboard.html";
+    } else if (!isLogin && data.message) {
+        alert("Registered! Now login.");
+        toggle();
+    } else {
+        alert(data.detail);
+    }
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Pomodoro Clock</title>
+
+<style>
+body {
+    font-family: 'Segoe UI';
+    background: #eff6ff;
+    margin: 0;
+    text-align: center;
+}
+
+/* BACK BUTTON */
+.back-btn {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    padding: 8px 12px;
+    background: #83b2fd;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* CENTER */
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* CLOCK */
+.clock {
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: #dbeafe; /* LIGHT BLUE */
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    cursor: pointer;
+}
+
+/* MARKINGS */
+.mark {
+    position: absolute;
+    width: 2px;
+    height: 10px;
+    background: #1e3a8a;
+    top: 5px;
+    left: 50%;
+    transform-origin: bottom;
+}
+
+/* HAND */
+.hand {
+    width: 3px;
+    height: 120px;
+    background: #1e3a8a;
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform-origin: bottom;
+}
+
+/* TIME */
+.time {
+    position: absolute;
+    top: 45%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: #1e3a8a;
+}
+
+/* BUTTONS */
+button {
+    margin: 5px;
+    padding: 10px 15px;
+    background: #83b2fd;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #2563eb;
+}
+
+/* DARK MODE */
+.dark {
+    background: #1e293b;
+    color: white;
+}
+
+.dark .clock {
+    background: #93c5fd; /* LIGHTER BLUE FOR VISIBILITY */
+}
+
+@media (max-width: 768px) {
+    .clock {
+        width: 200px;
+        height: 200px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<button class="back-btn" onclick="goBack()">⬅ Back</button>
+
+<div class="container">
+    <div>
+        <h2>⏳ Pomodoro Clock</h2>
+
+        <div class="clock" id="clock">
+            <div class="hand" id="hand"></div>
+            <div class="time" id="time">0 min</div>
+        </div>
+
+        <div>
+            <button onclick="start()">Start</button>
+            <button onclick="pause()">Pause</button>
+            <button onclick="reset()">Stop</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let minutes = 0;
+let angle = 0;
+let dragging = false;
+let interval;
+let remaining = 0;
+
+// BACK
+function goBack() {
+    window.location.href = "dashboard.html";
+}
+
+// ADD CLOCK MARKINGS
+const clock = document.getElementById("clock");
+for (let i = 0; i < 60; i++) {
+    const mark = document.createElement("div");
+    mark.className = "mark";
+    mark.style.transform = `rotate(${i * 6}deg)`;
+    clock.appendChild(mark);
+}
+
+// DRAG TO SET TIME
+clock.addEventListener("mousedown", () => dragging = true);
+window.addEventListener("mouseup", () => dragging = false);
+
+window.addEventListener("mousemove", (e) => {
+    if (!dragging) return;
+
+    const rect = clock.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+
+    const dx = e.clientX - cx;
+    const dy = e.clientY - cy;
+
+    angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+    if (angle < 0) angle += 360;
+
+    minutes = Math.round(angle / 6);
+
+    document.getElementById("hand").style.transform =
+        `rotate(${angle}deg)`;
+
+    document.getElementById("time").innerText =
+        minutes + " min";
+});
+
+// START
+function start() {
+    if (remaining === 0) {
+        remaining = minutes * 60;
+    }
+
+    clearInterval(interval);
+
+    interval = setInterval(() => {
+        if (remaining <= 0) {
+            clearInterval(interval);
+            alert("Focus session complete 🔥");
+        }
+
+        let m = Math.floor(remaining / 60);
+        let s = remaining % 60;
+
+        document.getElementById("time").innerText =
+            `${m}:${s < 10 ? "0" : ""}${s}`;
+
+        remaining--;
+    }, 1000);
+}
+
+// PAUSE
+function pause() {
+    clearInterval(interval);
+}
+
+// RESET
+function reset() {
+    clearInterval(interval);
+    remaining = 0;
+    minutes = 0;
+    document.getElementById("time").innerText = "0 min";
+    document.getElementById("hand").style.transform = "rotate(0deg)";
+}
+
+// DARK MODE
+if (localStorage.getItem("theme") === "dark") {
+    document.body.classList.add("dark");
+}
+</script>
+
+</body>
+</html>

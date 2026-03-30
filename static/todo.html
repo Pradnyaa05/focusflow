@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>To-Do</title>
+
+<style>
+body {
+    font-family: 'Segoe UI';
+    background: #eff6ff;
+    margin: 0;
+}
+
+/* BACK BUTTON */
+.back-btn {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    padding: 8px 12px;
+    background: #83b2fd;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* MAIN */
+.container {
+    padding: 60px 30px;
+}
+
+/* TITLE */
+h2 {
+    color: #1e3a8a;
+}
+
+/* INPUT */
+input {
+    padding: 10px;
+    margin: 5px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+/* BUTTON */
+button {
+    padding: 10px;
+    background: #83b2fd;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* GRID */
+#list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+/* CARD */
+.card {
+    background: white;
+    padding: 15px;
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    transition: 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+/* DATE */
+.date {
+    font-weight: bold;
+    color: #1e3a8a;
+    margin-bottom: 10px;
+}
+
+/* TASK */
+.task {
+    margin-top: 5px;
+}
+
+/* COMPLETED */
+.completed {
+    text-decoration: line-through;
+    color: gray;
+}
+
+/* DELETE BUTTON */
+.delete-btn {
+    float: right;
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: 6px;
+}
+
+.dark {
+    background: #1e293b;
+    color: white;
+}
+
+.dark .card {
+    background: #334155;
+}
+
+.dark .task {
+    background: #334155;
+}
+
+.dark input {
+    background: #475569;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+
+    #list {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<button class="back-btn" onclick="goBack()">⬅ Back</button>
+
+<div class="container">
+
+<h2>📅 To-Do List</h2>
+
+<!-- ADD -->
+<input id="taskInput" placeholder="Enter task">
+<input id="dateInput" type="date">
+<button onclick="addTodo()">➕ Add</button>
+
+<!-- LIST -->
+<div id="list"></div>
+
+</div>
+
+<script>
+let token = localStorage.getItem("token");
+
+if (!token) {
+    window.location.href = "index.html";
+}
+
+// BACK
+function goBack() {
+    window.location.href = "dashboard.html";
+}
+
+// ADD TODO
+async function addTodo() {
+    const title = document.getElementById("taskInput").value;
+    const date = document.getElementById("dateInput").value;
+
+    if (!title || !date) {
+        alert("Fill all fields");
+        return;
+    }
+
+    await fetch("/todos", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ title, date })
+    });
+
+    taskInput.value = "";
+    loadTodos();
+}
+
+// LOAD TODOS
+async function loadTodos() {
+    const res = await fetch("/todos", {
+        headers: { "Authorization": "Bearer " + token }
+    });
+
+    const data = await res.json();
+
+    // GROUP BY DATE
+    const grouped = {};
+
+    data.forEach(t => {
+        if (!grouped[t.date]) {
+            grouped[t.date] = [];
+        }
+        grouped[t.date].push(t);
+    });
+
+    let html = "";
+
+    for (let date in grouped) {
+        html += `<div class="card">
+                    <div class="date">📅 ${date}</div>`;
+
+        grouped[date].forEach(t => {
+            html += `
+                <div class="task ${t.is_completed ? "completed" : ""}">
+                    <input type="checkbox"
+                        onchange="toggle(${t.id})"
+                        ${t.is_completed ? "checked" : ""}>
+                    ${t.title}
+                    <button class="delete-btn"
+                        onclick="deleteTodo(${t.id})">Delete</button>
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+    }
+
+    document.getElementById("list").innerHTML = html;
+}
+
+// TOGGLE
+async function toggle(id) {
+    await fetch(`/todos/${id}`, {
+        method: "PUT",
+        headers: { "Authorization": "Bearer " + token }
+    });
+
+    loadTodos();
+}
+
+// DELETE
+async function deleteTodo(id) {
+    await fetch(`/todos/${id}`, {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + token }
+    });
+
+    loadTodos();
+}
+
+// DARK MODE
+if (localStorage.getItem("theme") === "dark") {
+    document.body.classList.add("dark");
+}
+
+
+// LOAD
+loadTodos();
+</script>
+
+</body>
+</html>

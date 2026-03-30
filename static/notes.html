@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Notes</title>
+
+<style>
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #eff6ff;
+    margin: 0;
+}
+
+/* BACK BUTTON */
+.back-btn {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    padding: 8px 12px;
+    background: #83b2fd;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* MAIN */
+.container {
+    padding: 60px 30px;
+}
+
+/* INPUT CARD */
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+}
+
+/* INPUT */
+input {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+/* BUTTON */
+button {
+    padding: 10px;
+    background: #83b2fd;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* GRID (🔥 MAIN CHANGE) */
+#notesList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+/* NOTE CARD */
+.note {
+    background: white;
+    padding: 15px;
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    transition: 0.2s;
+}
+
+.note:hover {
+    transform: translateY(-5px);
+}
+
+/* ACTIONS */
+.actions button {
+    margin-right: 5px;
+    margin-top: 10px;
+}
+
+/* MODAL */
+#modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.3);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-box {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    width: 300px;
+}
+/* DARK MODE */
+.dark {
+    background: #1e293b;
+    color: white;
+}
+
+.dark .card,
+.dark .note,
+.dark .modal-box {
+    background: #334155;
+    color: white;
+}
+
+.dark input {
+    background: #475569;
+    color: white;
+    border: none;
+}
+
+.dark button {
+    background: #3b82f6;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+
+    #notesList {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<button class="back-btn" onclick="goBack()">⬅ Back</button>
+
+<div class="container">
+
+<h2>📝 Notes</h2>
+
+<div class="card">
+    <input id="title" placeholder="Title">
+    <input id="content" placeholder="Content">
+    <button onclick="saveNote()">Save Note</button>
+</div>
+
+<div id="notesList"></div>
+
+</div>
+
+<!-- READ MODAL -->
+<div id="modal">
+    <div class="modal-box">
+        <h3 id="modalTitle"></h3>
+        <p id="modalContent"></p>
+        <button onclick="closeModal()">Close</button>
+    </div>
+</div>
+
+<script>
+let token = localStorage.getItem("token");
+
+if (!token) {
+    alert("Please login first");
+    window.location.href = "index.html";
+}
+
+let editId = null;
+
+function goBack() {
+    window.location.href = "dashboard.html";
+}
+
+// GET NOTES
+async function getNotes() {
+    const res = await fetch("/notes", {
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
+
+    const data = await res.json();
+
+    let html = "";
+
+    data.forEach(note => {
+        html += `
+            <div class="note">
+                <b>${note.title || "No Title"}</b><br>
+                ${(note.content || "").slice(0, 80)}<br>
+
+                <div class="actions">
+                    <button onclick="readNote('${note.title}','${note.content}')">Read</button>
+                    <button onclick="editNote(${note.id}, '${note.title}', '${note.content}')">Edit</button>
+                    <button onclick="deleteNote(${note.id})">Delete</button>
+                </div>
+            </div>
+        `;
+    });
+
+    document.getElementById("notesList").innerHTML = html;
+}
+
+// SAVE
+async function saveNote() {
+    const title = document.getElementById("title").value;
+    const content = document.getElementById("content").value;
+
+    if (!title || !content) {
+        alert("Fill all fields");
+        return;
+    }
+
+    if (editId === null) {
+        await fetch("/notes", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({ title, content })
+        });
+    } else {
+        await fetch(`/notes/${editId}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({ title, content })
+        });
+
+        editId = null;
+    }
+
+    document.getElementById("title").value = "";
+    document.getElementById("content").value = "";
+
+    getNotes();
+}
+
+// EDIT
+function editNote(id, title, content) {
+    editId = id;
+    document.getElementById("title").value = title;
+    document.getElementById("content").value = content;
+}
+
+// READ
+function readNote(title, content) {
+    document.getElementById("modalTitle").innerText = title;
+    document.getElementById("modalContent").innerText = content;
+    document.getElementById("modal").style.display = "flex";
+}
+
+// CLOSE
+function closeModal() {
+    document.getElementById("modal").style.display = "none";
+}
+
+// DELETE
+async function deleteNote(id) {
+    await fetch(`/notes/${id}`, {
+        method: "DELETE",
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
+
+    getNotes();
+}
+
+// APPLY DARK MODE
+if (localStorage.getItem("theme") === "dark") {
+    document.body.classList.add("dark");
+}
+// LOAD
+getNotes();
+</script>
+
+</body>
+</html>
