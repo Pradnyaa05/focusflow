@@ -11,8 +11,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi.staticfiles import StaticFiles
 
-# CREATE TABLES
+from database import engine
+import models
+
 models.Base.metadata.create_all(bind=engine)
+
+# # CREATE TABLES
+# models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
