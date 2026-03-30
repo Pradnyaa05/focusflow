@@ -44,16 +44,44 @@ def get_db():
 
 # ================= AUTH =================
 
+# @app.post("/register")
+# def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
+#     existing_user = db.query(models.User).filter(models.User.username == user.username).first()
+
+#     if existing_user:
+#         raise HTTPException(status_code=400, detail="Username already exists")
+
+#     hashed_password = pwd_context.hash(user.password)
+
+#     new_user = models.User(username=user.username, password=hashed_password)
+
+#     db.add(new_user)
+#     db.commit()
+#     db.refresh(new_user)
+
+#     return {"message": "User created successfully"}
+
 @app.post("/register")
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    existing_user = db.query(models.User).filter(models.User.username == user.username).first()
+
+    existing_user = db.query(models.User).filter(
+        models.User.username == user.username
+    ).first()
 
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already exists")
 
-    hashed_password = pwd_context.hash(user.password)
+    # 🔥 ADD THIS CHECK
+    if len(user.password) > 72:
+        raise HTTPException(status_code=400, detail="Password too long")
 
-    new_user = models.User(username=user.username, password=hashed_password)
+    # 🔥 FIXED HASHING
+    hashed_password = pwd_context.hash(user.password[:72])
+
+    new_user = models.User(
+        username=user.username,
+        password=hashed_password
+    )
 
     db.add(new_user)
     db.commit()
